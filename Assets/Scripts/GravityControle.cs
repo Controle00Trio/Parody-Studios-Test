@@ -4,30 +4,34 @@ public class GravityControle : MonoBehaviour
 {
     public Vector3 _gravityDirection = Vector3.down;
     public float _gravityIntensity;
+    public CamerDirection _camDir;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
 
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.UpArrow))
+        if (Input.GetKeyDown(KeyCode.Alpha1))
         {
-            _gravityDirection = Vector3.up;
+            SetGravityDirection(Vector3.up);
+            _camDir.SetGravityDirection(_gravityDirection);
         }
-        if (Input.GetKeyDown(KeyCode.DownArrow))
+        if (Input.GetKeyDown(KeyCode.Alpha2))
         {
-            _gravityDirection = Vector3.down;
+            SetGravityDirection(Vector3.down);
+            _camDir.SetGravityDirection(_gravityDirection);
         }
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        if (Input.GetKeyDown(KeyCode.Alpha3))
         {
-            _gravityDirection = Vector3.right;
+            SetGravityDirection(Vector3.right);
+            _camDir.SetGravityDirection(_gravityDirection);
         }
-        if (Input.GetKeyDown(KeyCode.RightArrow))
+        if (Input.GetKeyDown(KeyCode.Alpha4))
         {
-            _gravityDirection = Vector3.left;
+            SetGravityDirection(Vector3.left);
+            _camDir.SetGravityDirection(_gravityDirection);
         }
     }
 
