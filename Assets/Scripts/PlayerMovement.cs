@@ -1,22 +1,24 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Player Movement Attributes")]
-    public Camera playerCamera;
+    [Header("Script Refrences")]
     public AnimationController animationController;
     public GravityControle gravityControle;
+    public Camera playerCamera;
     public Transform feetPos;
-
-    [Header("Player Movement Attributes")]
     public float moveSpeed = 8f;
     public float rotationSpeed = 10f;
+    public float gravityrotationSpeed = 10f;
     public float groundDrag = 5f;
+    public float jumpforce = 5f;
 
     private Rigidbody rb;
     private Vector3 moveDir;
     private bool isGrounded;
+    private bool camJump = true;
 
     void Start()
     {
@@ -28,8 +30,12 @@ public class PlayerMovement : MonoBehaviour
     {
         GroundCheck();
         InputHandling();
+
         RotateWithGravity();
         RotateTowardsMovement();
+
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded && camJump)
+            StartCoroutine("Jump");
     }
 
     void FixedUpdate()
@@ -42,13 +48,18 @@ public class PlayerMovement : MonoBehaviour
 
     void InputHandling()
     {
+
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");
 
         Vector3 gravityUp = -gravityControle._gravityDirection;
 
-        Vector3 camForward = Vector3.ProjectOnPlane(playerCamera.transform.forward, gravityUp).normalized;
-        Vector3 camRight = Vector3.ProjectOnPlane(playerCamera.transform.right, gravityUp).normalized;
+        Vector3 camForward = playerCamera.transform.forward;
+        camForward = Vector3.ProjectOnPlane(camForward, -gravityControle._gravityDirection).normalized;
+
+        Vector3 camRight = playerCamera.transform.right;
+        camRight = Vector3.ProjectOnPlane(camRight, -gravityControle._gravityDirection).normalized;
+
 
         moveDir = (camForward * v + camRight * h).normalized;
 
@@ -58,7 +69,11 @@ public class PlayerMovement : MonoBehaviour
 
     void ApplyGravity()
     {
-        rb.AddForce(gravityControle._gravityDirection * gravityControle._gravityIntensity, ForceMode.Acceleration);
+        if (camJump)
+            rb.AddForce(gravityControle._gravityDirection * gravityControle._gravityIntensity, ForceMode.Acceleration);
+        else
+            rb.AddForce(gravityControle._gravityDirection * gravityControle._gravityIntensity * 2.5f, ForceMode.Acceleration);
+
     }
 
     void ApplyMovement()
@@ -77,7 +92,26 @@ public class PlayerMovement : MonoBehaviour
     {
         Vector3 gravityUp = -gravityControle._gravityDirection;
 
-        Quaternion targetRot = Quaternion.FromToRotation(transform.up, gravityUp) * transform.rotation;
+        Quaternion targetRot =
+            Quaternion.FromToRotation(transform.up, gravityUp) * transform.rotation;
+
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            targetRot,
+            gravityrotationSpeed * Time.deltaTime
+        );
+    }
+
+
+    void RotateTowardsMovement()
+    {
+        if (moveDir.sqrMagnitude < 0.1f) return;
+
+        Vector3 gravityUp = -gravityControle._gravityDirection;
+
+        Vector3 flatDir = Vector3.ProjectOnPlane(moveDir, gravityUp).normalized;
+
+        Quaternion targetRot = Quaternion.LookRotation(flatDir, gravityUp);
 
         transform.rotation = Quaternion.Slerp(
             transform.rotation,
@@ -86,20 +120,22 @@ public class PlayerMovement : MonoBehaviour
         );
     }
 
-    void RotateTowardsMovement()
+    IEnumerator Jump()
     {
-        if (moveDir.sqrMagnitude < 0.01f) return;
+        animationController.SetJumpingAnimation();
+        yield return new WaitForSeconds(0.5f);
+        camJump = false;
+        rb.linearVelocity = Vector3.ProjectOnPlane(rb.linearVelocity, -gravityControle._gravityDirection);
 
-        Quaternion lookRot = Quaternion.LookRotation(moveDir, -gravityControle._gravityDirection);
-
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            lookRot,
-            rotationSpeed * Time.deltaTime
-        );
+        Vector3 dir = -gravityControle._gravityDirection;
+        rb.AddForce(dir * jumpforce, ForceMode.VelocityChange);
+        yield return new WaitForSeconds(1.5f);
+        ResetJump();
     }
-
-
+    void ResetJump()
+    {
+        camJump = true;
+    }
     void GroundCheck()
     {
         isGrounded = Physics.Raycast(feetPos.transform.position, gravityControle._gravityDirection, 1.1f);
